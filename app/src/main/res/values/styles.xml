@@ -1,0 +1,1 @@
+<resources><style name="Theme.QuietLedger" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#6E5B48</item><item name="android:navigationBarColor">#FBF8F3</item><item name="android:windowLightNavigationBar">true</item></style></resources>

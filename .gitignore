@@ -1,0 +1,20 @@
+# Gradle and Android build output
+.gradle/
+.gradle-user-home/
+build/
+**/build/
+.kotlin/
+
+# Local Android Studio and SDK configuration
+.idea/
+local.properties
+*.iml
+
+# Generated signing material and local environment files
+*.jks
+*.keystore
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
