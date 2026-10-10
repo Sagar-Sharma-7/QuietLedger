@@ -223,7 +223,7 @@ private fun Metric(label: String, value: String, color: Color) {
 @Composable
 private fun Breakdown(transactions: List<TransactionEntity>) {
     val spending = transactions
-        .filter { it.type == TransactionType.DEBIT && !it.isExcluded && !it.isPossibleDuplicate }
+        .filter { it.type == TransactionType.DEBIT && !it.isExcluded && !it.isPossibleDuplicate && !it.needsReview }
         .groupBy { it.category }
         .mapValues { (_, rows) -> rows.sumOf { it.amountPaise } }
         .toList()

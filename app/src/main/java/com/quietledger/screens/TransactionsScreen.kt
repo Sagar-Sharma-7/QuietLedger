@@ -53,8 +53,9 @@ fun TransactionsScreen(
     var query by remember { mutableStateOf("") }
     val transactions by (if (query.isBlank()) repo.all() else repo.search(query.removePrefix("₹")))
         .collectAsState(initial = emptyList())
-    val monthlyGroups = remember(transactions) {
-        transactions.groupBy { transaction ->
+    val confirmedTransactions = transactions.filter { !it.needsReview }
+    val monthlyGroups = remember(confirmedTransactions) {
+        confirmedTransactions.groupBy { transaction ->
             YearMonth.from(Instant.ofEpochMilli(transaction.timestamp).atZone(ZoneId.systemDefault()))
         }.toSortedMap(compareByDescending<YearMonth> { it })
     }
@@ -78,7 +79,7 @@ fun TransactionsScreen(
                 singleLine = true
             )
 
-            if (transactions.isEmpty()) {
+            if (confirmedTransactions.isEmpty()) {
                 EmptyState(
                     title = if (query.isBlank()) "No transactions yet" else "No matches",
                     body = if (query.isBlank()) "Add a transaction or wait for a selected app notification." else "Try a merchant, category or amount.",

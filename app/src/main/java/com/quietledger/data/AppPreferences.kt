@@ -18,6 +18,7 @@ class AppPreferences(private val context: Context) {
         val monthlySavingsGoalPaise = longPreferencesKey("monthly_savings_goal_paise")
         val budgetAlertsEnabled = booleanPreferencesKey("budget_alerts_enabled")
         val lastOverspendAlertDate = stringPreferencesKey("last_overspend_alert_date")
+        val ignoredMerchants = stringSetPreferencesKey("ignored_notification_merchants")
     }
 
     val onboardingDone = context.dataStore.data.map { it[Keys.onboarding] ?: false }
@@ -28,6 +29,7 @@ class AppPreferences(private val context: Context) {
     val monthlySavingsGoalPaise = context.dataStore.data.map { it[Keys.monthlySavingsGoalPaise] ?: 0L }
     val budgetAlertsEnabled = context.dataStore.data.map { it[Keys.budgetAlertsEnabled] ?: false }
     val lastOverspendAlertDate = context.dataStore.data.map { it[Keys.lastOverspendAlertDate] }
+    val ignoredMerchants = context.dataStore.data.map { it[Keys.ignoredMerchants] ?: emptySet() }
     val merchantRules = context.dataStore.data.map { raw -> (raw[Keys.merchantRules] ?: emptySet()).mapNotNull { entry -> entry.split("|", limit = 2).takeIf { it.size == 2 }?.let { it[0] to it[1] } }.toMap() }
     suspend fun setOnboardingDone() = context.dataStore.edit { it[Keys.onboarding] = true }
     suspend fun setSources(packages: Set<String>) = context.dataStore.edit { it[Keys.sources] = packages }
@@ -39,6 +41,9 @@ class AppPreferences(private val context: Context) {
     }
     suspend fun setBudgetAlertsEnabled(enabled: Boolean) = context.dataStore.edit { it[Keys.budgetAlertsEnabled] = enabled }
     suspend fun markOverspendAlertShown(date: String) = context.dataStore.edit { it[Keys.lastOverspendAlertDate] = date }
+    suspend fun ignoreNotificationMerchant(merchant: String) = context.dataStore.edit { prefs ->
+        Categorizer.normalizeMerchant(merchant)?.let { prefs[Keys.ignoredMerchants] = (prefs[Keys.ignoredMerchants] ?: emptySet()) + it }
+    }
     suspend fun rememberMerchantCategory(merchant: String, category: String) = context.dataStore.edit { prefs ->
         val merchantKey = Categorizer.normalizeMerchant(merchant) ?: return@edit
         val old = prefs[Keys.merchantRules] ?: emptySet()

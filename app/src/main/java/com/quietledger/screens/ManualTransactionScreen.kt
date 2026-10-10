@@ -35,17 +35,31 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ManualTransactionScreen(repo: FinanceRepository, onDone: () -> Unit) {
+    var quickEntry by remember { mutableStateOf("") }
     var income by remember { mutableStateOf(false) }
     var amount by remember { mutableStateOf("") }
     var merchant by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(Category.OTHER) }
+    var timestamp by remember { mutableStateOf(System.currentTimeMillis()) }
     val scope = rememberCoroutineScope()
     val amountPaise = amount.toBigDecimalOrNull()?.movePointRight(2)?.toLong() ?: 0L
 
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Add transaction", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(20.dp))
+        OutlinedTextField(
+            value = quickEntry, onValueChange = { quickEntry = it }, modifier = Modifier.fillMaxWidth(),
+            label = { Text("Quick add: Swiggy 340 or Salary 45000") },
+            supportingText = { Text("Use your keyboard microphone to dictate; text stays on this phone.") }, minLines = 2
+        )
+        Button(onClick = {
+            parseQuickEntry(quickEntry)?.let { parsed ->
+                amount = parsed.amount; merchant = parsed.merchant; income = parsed.income; timestamp = parsed.timestamp
+                category = Categorizer.categoryFor(merchant, if (income) TransactionType.CREDIT else TransactionType.DEBIT)
+            }
+        }, enabled = quickEntry.isNotBlank(), modifier = Modifier.fillMaxWidth()) { Text("Fill from text") }
+        Spacer(Modifier.height(12.dp))
         Row {
             FilterChip(selected = !income, onClick = { income = false }, label = { Text("Expense") })
             Spacer(Modifier.padding(4.dp))
@@ -91,7 +105,7 @@ fun ManualTransactionScreen(repo: FinanceRepository, onDone: () -> Unit) {
                                 type = type,
                                 merchant = merchant.ifBlank { null },
                                 category = if (category == Category.OTHER) Categorizer.categoryFor(merchant, type) else category,
-                                timestamp = System.currentTimeMillis(),
+                                timestamp = timestamp,
                                 sourceApp = "Manual",
                                 notes = notes.ifBlank { null }
                             )
@@ -104,6 +118,16 @@ fun ManualTransactionScreen(repo: FinanceRepository, onDone: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save transaction") }
     }
+}
+
+private data class QuickEntry(val amount: String, val merchant: String, val income: Boolean, val timestamp: Long)
+private fun parseQuickEntry(text: String): QuickEntry? {
+    val amount = Regex("(?:₹\\s*)?([0-9][0-9,]*(?:\\.[0-9]{1,2})?)").find(text)?.groupValues?.getOrNull(1)?.replace(",", "") ?: return null
+    val lower = text.lowercase()
+    val income = Regex("\\b(salary|credited|received|income|refund|gift)\\b").containsMatchIn(lower)
+    val merchant = text.replace(Regex("(?:₹\\s*)?[0-9][0-9,]*(?:\\.[0-9]{1,2})?"), "")
+        .replace(Regex("\\b(paid|to|at|for|salary|credited|received|yesterday)\\b", RegexOption.IGNORE_CASE), "").trim().ifBlank { if (income) "Income" else "Expense" }
+    return QuickEntry(amount, merchant, income, if ("yesterday" in lower) System.currentTimeMillis() - 86_400_000L else System.currentTimeMillis())
 }
 
 @Composable

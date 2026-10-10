@@ -49,7 +49,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun SettingsScreen(repo: FinanceRepository, sources: () -> Unit, budget: () -> Unit) {
+fun SettingsScreen(repo: FinanceRepository, sources: () -> Unit, budget: () -> Unit, importStatement: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val transactions by repo.all().collectAsState(initial = emptyList())
@@ -136,6 +136,9 @@ fun SettingsScreen(repo: FinanceRepository, sources: () -> Unit, budget: () -> U
             onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
         )
         SettingItem("Financial sources", "Choose apps Quiet Ledger may analyze", sources)
+
+        SettingsSection("Transactions")
+        SettingItem("Import bank statement", "Review a local CSV; only new rows are imported", importStatement)
 
         SettingsSection("Budget")
         SettingItem("Monthly budget", "Income, savings goal, and local daily alert", budget)

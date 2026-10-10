@@ -14,6 +14,9 @@ import com.quietledger.models.TransactionStatus
 import com.quietledger.models.TransactionType
 import com.quietledger.parser.Categorizer
 import com.quietledger.notification.BudgetAlertNotifier
+import com.quietledger.statement.ImportMatch
+import com.quietledger.statement.StatementImporter
+import com.quietledger.statement.StatementRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
@@ -25,7 +28,7 @@ class FinanceRepository private constructor(context: Context) {
         appContext,
         AppDatabase::class.java,
         "quiet_ledger.db"
-    ).build()
+    ).addMigrations(AppDatabase.MIGRATION_1_2).build()
     private val dao = database.financeDao()
 
     val preferences = AppPreferences(appContext)
@@ -77,6 +80,7 @@ class FinanceRepository private constructor(context: Context) {
         val possibleDuplicate = exactReferenceMatch || nearby.any { existing ->
             strongDuplicateMatch(existing, parsed, sourceApp)
         }
+        if (parsed.merchant?.let { Categorizer.normalizeMerchant(it) in preferences.ignoredMerchants.first() } == true) return
         val rememberedRules = preferences.merchantRules.first()
 
         save(
@@ -92,14 +96,31 @@ class FinanceRepository private constructor(context: Context) {
                 transactionReference = parsed.reference,
                 status = parsed.status,
                 isPossibleDuplicate = possibleDuplicate,
+                needsReview = true,
                 confidence = parsed.confidence
             )
         )
     }
 
+    suspend fun previewStatement(csv: String): List<StatementRow> = StatementImporter.parse(csv, dao.allNow())
+
+    suspend fun importStatement(rows: List<StatementRow>) {
+        val rules = preferences.merchantRules.first()
+        rows.filter { it.match != ImportMatch.EXACT_DUPLICATE && it.match != ImportMatch.INVALID }.forEach { row ->
+            save(TransactionEntity(
+                amountPaise = row.amountPaise, type = row.type, merchant = row.description,
+                category = Categorizer.categoryFor(row.description, row.type, rules), timestamp = row.timestamp,
+                sourceApp = "Bank statement", transactionReference = row.reference,
+                isPossibleDuplicate = row.match == ImportMatch.POSSIBLE_DUPLICATE
+            ))
+        }
+    }
+
+    suspend fun approve(transaction: TransactionEntity) = save(transaction.copy(needsReview = false, isPossibleDuplicate = false))
+
     fun summary(items: List<TransactionEntity>): FinanceSummary {
         val included = items.filter {
-            !it.isExcluded && !it.isPossibleDuplicate && it.status == TransactionStatus.COMPLETED
+            !it.isExcluded && !it.isPossibleDuplicate && !it.needsReview && it.status == TransactionStatus.COMPLETED
         }
         val spent = included.filter { it.type == TransactionType.DEBIT }.sumOf { it.amountPaise }
         val received = included
@@ -123,7 +144,7 @@ class FinanceRepository private constructor(context: Context) {
         val today = LocalDate.now(zone)
         val monthEnd = today.withDayOfMonth(today.lengthOfMonth())
         val spent = items.asSequence()
-            .filter { !it.isExcluded && !it.isPossibleDuplicate && it.status == TransactionStatus.COMPLETED && it.type == TransactionType.DEBIT }
+            .filter { !it.isExcluded && !it.isPossibleDuplicate && !it.needsReview && it.status == TransactionStatus.COMPLETED && it.type == TransactionType.DEBIT }
             .sumOf { it.amountPaise }
         return MonthlyBudget(incomePaise, savingsGoalPaise, spent, java.time.temporal.ChronoUnit.DAYS.between(today, monthEnd).toInt() + 1)
     }
@@ -159,7 +180,7 @@ class FinanceRepository private constructor(context: Context) {
         if (budget.spendablePaise <= 0L) return
         val dayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
         val spentToday = monthTransactions.asSequence()
-            .filter { it.timestamp >= dayStart && !it.isExcluded && !it.isPossibleDuplicate && it.status == TransactionStatus.COMPLETED && it.type == TransactionType.DEBIT }
+            .filter { it.timestamp >= dayStart && !it.isExcluded && !it.isPossibleDuplicate && !it.needsReview && it.status == TransactionStatus.COMPLETED && it.type == TransactionType.DEBIT }
             .sumOf { it.amountPaise }
         if (spentToday > budget.dailyGuidePaise) {
             BudgetAlertNotifier.showOverspendWarning(appContext)

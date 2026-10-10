@@ -66,6 +66,10 @@ fun TransactionDetailScreen(repo: FinanceRepository, id: Long, onBack: () -> Uni
         Spacer(Modifier.height(20.dp))
         Text("Correct transaction", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
+        if (item.needsReview) {
+            OutlinedButton(onClick = { scope.launch { repo.approve(item); onBack() } }, modifier = Modifier.fillMaxWidth()) { Text("Add this detected transaction") }
+            OutlinedButton(onClick = { scope.launch { item.merchant?.let { repo.preferences.ignoreNotificationMerchant(it) }; repo.delete(item); onBack() } }, modifier = Modifier.fillMaxWidth()) { Text("Always ignore this merchant") }
+        }
         CategoryPicker(item.category) { category -> scope.launch { repo.assignCategory(item, category) } }
         Spacer(Modifier.height(10.dp))
         OutlinedButton(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) { Text("Edit merchant or note") }

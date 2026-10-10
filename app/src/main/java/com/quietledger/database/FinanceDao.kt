@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM transactions WHERE amountPaise = :amount AND type = :type AND timestamp BETWEEN :from AND :to") suspend fun findSimilar(amount: Long, type: String, from: Long, to: Long): List<TransactionEntity>
     @Query("SELECT * FROM transactions WHERE transactionReference = :reference ORDER BY timestamp DESC LIMIT 1") suspend fun findByReference(reference: String): TransactionEntity?
     @Query("SELECT * FROM transactions WHERE timestamp BETWEEN :from AND :to ORDER BY timestamp DESC") suspend fun inRange(from: Long, to: Long): List<TransactionEntity>
+    @Query("SELECT * FROM transactions ORDER BY timestamp DESC") suspend fun allNow(): List<TransactionEntity>
     @Insert suspend fun insert(transaction: TransactionEntity): Long
     @Update suspend fun update(transaction: TransactionEntity)
     @Delete suspend fun delete(transaction: TransactionEntity)

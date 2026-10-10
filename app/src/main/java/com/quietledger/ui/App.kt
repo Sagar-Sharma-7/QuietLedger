@@ -52,6 +52,7 @@ import com.quietledger.screens.SettingsScreen
 import com.quietledger.screens.SourcePicker
 import com.quietledger.screens.TransactionDetailScreen
 import com.quietledger.screens.TransactionsScreen
+import com.quietledger.screens.StatementImportScreen
 import com.quietledger.ui.theme.QuietLedgerTheme
 import com.quietledger.ui.theme.ThemeMode
 
@@ -141,9 +142,10 @@ private fun LedgerApp(repo: FinanceRepository) {
                 ReviewScreen(repo) { id -> navController.navigate("detail/$id") }
             }
             composable("settings") {
-                SettingsScreen(repo, sources = { navController.navigate("sources") }, budget = { navController.navigate("budget") })
+                SettingsScreen(repo, sources = { navController.navigate("sources") }, budget = { navController.navigate("budget") }, importStatement = { navController.navigate("import") })
             }
             composable("budget") { BudgetScreen(repo) { navController.popBackStack() } }
+            composable("import") { StatementImportScreen(repo) { navController.popBackStack() } }
             composable("sources") {
                 SourcePicker(repo = repo, onBack = { navController.popBackStack() })
             }

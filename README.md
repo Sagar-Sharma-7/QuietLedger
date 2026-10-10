@@ -8,6 +8,8 @@ Quiet Ledger is a native Android personal-finance tracker that works entirely on
 - **Selective notification detection.** You choose which installed apps Quiet Ledger may inspect; every other app is ignored.
 - **Conservative parsing.** Only completed money movement—paid, debited, credited, refunded, reversed, or received—is recorded. OTPs, authentication codes, failures, pending attempts, and future AutoPay/SIP/bill/recharge reminders are ignored.
 - **Safe duplicate review.** Transactions are flagged only on an exact reference match or strong combined evidence. Nothing is silently deleted.
+- **Local statement reconciliation.** Import a bank CSV through Android's file picker, preview its rows, and add only the selected new entries; the CSV is parsed in memory and not retained.
+- **Quick manual entry.** Type or use the phone keyboard's voice button for text such as `Swiggy 340`, `paid 1200 to doctor`, or `Salary 45000`; the app fills the form locally for review.
 - **Monthly budget.** Enter income and a savings goal to see spendable money, money spent, remaining money, percentage used, and a daily guide.
 - **Optional local alert.** The Budget screen can request Android notification permission solely for an on-device daily overspend warning.
 - **Security and control.** Optional biometric/device-lock gate, local CSV export, manual transactions, categories, and remembered merchant corrections.
@@ -57,7 +59,8 @@ The `-r` option updates the debug app while preserving local data when Android p
 2. Enable Android notification access when you want automatic tracking; Quiet Ledger cannot grant this access itself.
 3. Select only financial apps you approve in **Settings → Financial sources**.
 4. Add income and a savings target in **Settings → Monthly budget**. Enable the optional alert only if you want a daily local notification.
-5. Review low-confidence and possible-duplicate entries from the **Review** tab instead of letting the app remove them.
+5. Review detected notifications from the **Review** tab. They affect totals only after you choose **Add**; use **Ignore** for an unwanted candidate.
+6. Use **Settings → Import bank statement** to reconcile missed activity from a CSV exported by your bank. The app does not delete the original file.
 
 ## How notification detection works
 
